@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ProcureAI — Industrial Intelligence Platform</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#0a0c0f;--surface:#111318;--surface2:#181c23;--surface3:#1e232d;
+      --border:#252b38;--border2:#2e3547;
+      --accent:#e87c2e;--accent2:#f0a050;--accent-glow:rgba(232,124,46,.15);--accent-glow2:rgba(232,124,46,.06);
+      --text:#e8eaf0;--text2:#8b92a8;--text3:#555e72;
+      --green:#2ecc8a;--green-bg:rgba(46,204,138,.08);
+      --red:#e85c5c;--red-bg:rgba(232,92,92,.08);
+      --blue:#5c9de8;--blue-bg:rgba(92,157,232,.08);
+      --yellow:#e8c42e;--yellow-bg:rgba(232,196,46,.08);
+      --radius:12px;--radius-lg:18px;
+    }
+    html{scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--text);font-family:'Instrument Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:1000;opacity:.4}
+    .app{display:flex;min-height:100vh}
+
+    /* SIDEBAR */
+    .sidebar{width:260px;min-width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+    .logo{padding:28px 24px 20px;border-bottom:1px solid var(--border)}
+    .logo-mark{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;display:flex;align-items:center;gap:10px}
+    .logo-mark span{color:var(--accent)}
+    .logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+    .logo-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);margin-top:4px;letter-spacing:1.5px;text-transform:uppercase}
+    .nav{padding:16px 12px;flex:1}
+    .nav-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;padding:0 12px;margin:16px 0 8px}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:all .15s;color:var(--text2);font-size:13.5px;font-weight:500;margin-bottom:2px;border:1px solid transparent}
+    .nav-item:hover{background:var(--surface2);color:var(--text)}
+    .nav-item.active{background:var(--accent-glow);color:var(--accent);border-color:rgba(232,124,46,.2)}
+    .nav-item .icon{font-size:16px;width:20px;text-align:center}
+    .nav-badge{margin-left:auto;background:var(--accent);color:#fff;font-size:10px;font-family:'DM Mono',monospace;padding:2px 6px;border-radius:20px}
+    .sidebar-footer{padding:16px;border-top:1px solid var(--border)}
+    .api-status{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)}
+    .status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .api-status-text{font-size:11px;color:var(--text2);font-family:'DM Mono',monospace}
+
+    /* MAIN */
+    .main{margin-left:260px;flex:1;display:flex;flex-direction:column}
+    .topbar{height:64px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 32px;gap:16px;background:var(--surface);position:sticky;top:0;z-index:50}
+    .topbar-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700}
+    .topbar-sub{font-size:12px;color:var(--text3);margin-top:1px}
+    .topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+    .topbar-tag{font-family:'DM Mono',monospace;font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid var(--border2);color:var(--text3)}
+    .topbar-tag.oil{border-color:rgba(232,124,46,.3);color:var(--accent);background:var(--accent-glow2)}
+    .content{padding:32px;flex:1}
+
+    /* CARDS */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;transition:border-color .2s}
+    .card:hover{border-color:var(--border2)}
+    .card-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:4px}
+    .card-sub{font-size:12px;color:var(--text3)}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+
+    /* STAT CARDS */
+    .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+    .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden}
+    .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);opacity:0;transition:opacity .2s}
+    .stat-card:hover::before{opacity:1}
+    .stat-label{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px}
+    .stat-value{font-family:'Syne',sans-serif;font-size:28px;font-weight:800}
+    .stat-change{font-size:11px;color:var(--green);margin-top:4px}
+    .stat-icon{position:absolute;top:20px;right:20px;font-size:22px;opacity:.3}
+
+    /* SERVER STATUS BANNER */
+    .server-banner{padding:12px 20px;border-radius:var(--radius);margin-bottom:24px;display:flex;align-items:center;gap:12px;font-size:13px;border:1px solid}
+    .server-banner.ok{background:var(--green-bg);border-color:rgba(46,204,138,.2);color:var(--green)}
+    .server-banner.error{background:var(--red-bg);border-color:rgba(232,92,92,.2);color:var(--red)}
+    .server-banner.checking{background:var(--yellow-bg);border-color:rgba(232,196,46,.2);color:var(--yellow)}
+
+    /* UPLOAD */
+    .upload-zone{border:2px dashed var(--border2);border-radius:var(--radius-lg);padding:48px 32px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2);position:relative;overflow:hidden}
+    .upload-zone::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,var(--accent-glow2),transparent 70%)}
+    .upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:var(--accent-glow2)}
+    .upload-icon{font-size:48px;margin-bottom:16px}
+    .upload-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:8px}
+    .upload-sub{font-size:13px;color:var(--text2)}
+    .upload-formats{display:flex;justify-content:center;gap:8px;margin-top:16px;flex-wrap:wrap}
+    .format-tag{font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:4px;background:var(--surface3);border:1px solid var(--border);color:var(--text3)}
+
+    /* FILE LIST */
+    .file-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;transition:all .15s;cursor:pointer}
+    .file-item:hover{border-color:var(--border2);background:var(--surface3)}
+    .file-item.active{border-color:var(--accent);background:var(--accent-glow2)}
+    .file-name{font-size:13px;font-weight:600}
+    .file-meta{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px}
+    .file-status{font-size:10px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:20px;font-weight:500}
+    .file-status.processing{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(232,196,46,.2)}
+    .file-status.done{background:var(--green-bg);color:var(--green);border:1px solid rgba(46,204,138,.2)}
+    .file-status.error{background:var(--red-bg);color:var(--red);border:1px solid rgba(232,92,92,.2)}
+    .file-status.pending{background:var(--surface3);color:var(--text3);border:1px solid var(--border)}
+
+    /* BUTTONS */
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:none;font-family:'Instrument Sans',sans-serif}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn-primary:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 4px 20px rgba(232,124,46,.3)}
+    .btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+    .btn-secondary{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+    .btn-secondary:hover{background:var(--surface3);color:var(--text);border-color:var(--border2)}
+    .btn-danger{background:var(--red-bg);color:var(--red);border:1px solid rgba(232,92,92,.2)}
+    .btn-danger:hover{background:var(--red);color:#fff}
+    .btn-sm{padding:6px 14px;font-size:12px}
+
+    /* ANALYSIS */
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .info-item{padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px}
+    .info-key{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+    .info-val{font-size:13px;font-weight:500}
+    .risk-item{display:flex;gap:12px;padding:12px 14px;border-radius:8px;margin-bottom:8px;border:1px solid transparent}
+    .risk-item.high{background:var(--red-bg);border-color:rgba(232,92,92,.2)}
+    .risk-item.medium{background:var(--yellow-bg);border-color:rgba(232,196,46,.2)}
+    .risk-item.low{background:var(--green-bg);border-color:rgba(46,204,138,.2)}
+    .risk-badge{font-family:'DM Mono',monospace;font-size:9px;padding:2px 6px;border-radius:4px;font-weight:600;text-transform:uppercase;height:fit-content;white-space:nowrap}
+    .risk-badge.high{background:var(--red);color:#fff}
+    .risk-badge.medium{background:var(--yellow);color:#000}
+    .risk-badge.low{background:var(--green);color:#000}
+    .risk-text{font-size:12.5px;color:var(--text2);line-height:1.5}
+    .recommendation{padding:16px 20px;background:linear-gradient(135deg,rgba(232,124,46,.08),rgba(232,124,46,.03));border:1px solid rgba(232,124,46,.25);border-radius:var(--radius);position:relative;overflow:hidden}
+    .recommendation::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+    .rec-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+    .rec-text{font-size:13px;color:var(--text2);line-height:1.6}
+
+    /* CHAT */
+    .chat-container{display:flex;flex-direction:column;height:calc(100vh - 200px);max-height:700px}
+    .chat-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+    .chat-message{display:flex;gap:12px;max-width:85%}
+    .chat-message.user{align-self:flex-end;flex-direction:row-reverse}
+    .chat-avatar{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+    .chat-avatar.ai{background:var(--accent);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:12px}
+    .chat-avatar.user{background:var(--surface3)}
+    .chat-bubble{padding:12px 16px;border-radius:12px;font-size:13px;line-height:1.6}
+    .chat-message.ai .chat-bubble{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:4px}
+    .chat-message.user .chat-bubble{background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+    .chat-input-area{padding:16px;border-top:1px solid var(--border);display:flex;gap:10px}
+    .chat-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text);font-family:'Instrument Sans',sans-serif;resize:none;outline:none;transition:border-color .15s}
+    .chat-input:focus{border-color:var(--accent)}
+    .chat-input::placeholder{color:var(--text3)}
+
+    /* COMPARE TABLE */
+    .comparison-table{width:100%;border-collapse:collapse}
+    .comparison-table th{text-align:left;font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;padding:10px 14px;border-bottom:1px solid var(--border)}
+    .comparison-table td{padding:12px 14px;font-size:13px;color:var(--text2);border-bottom:1px solid var(--border)}
+    .comparison-table tr:hover td{background:var(--surface2);color:var(--text)}
+    .comparison-table tr.best td:first-child{color:var(--green);font-weight:600}
+    .winner-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;background:var(--green-bg);color:var(--green);border:1px solid rgba(46,204,138,.2);padding:2px 8px;border-radius:20px;font-family:'DM Mono',monospace;margin-left:8px}
+    .progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:4px}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width .5s ease}
+
+    /* HR */
+    .score-ring{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:22px;position:relative}
+    .score-ring::before{content:'';position:absolute;inset:4px;border-radius:50%;background:var(--surface)}
+    .score-ring span{position:relative;z-index:1}
+    .cv-score-bar{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+    .cv-score-label{font-size:12px;color:var(--text2);width:140px;flex-shrink:0}
+    .cv-score-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+    .cv-score-fill{height:100%;border-radius:3px}
+
+    /* MISC */
+    .tabs{display:flex;gap:4px;padding:4px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);margin-bottom:24px}
+    .tab{flex:1;padding:8px 16px;border-radius:7px;font-size:13px;font-weight:500;text-align:center;cursor:pointer;transition:all .15s;color:var(--text2)}
+    .tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+    .loading-dots{display:flex;gap:4px;align-items:center;padding:4px 0}
+    .loading-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:dotBounce 1.2s infinite ease-in-out}
+    .loading-dot:nth-child(2){animation-delay:.2s}
+    .loading-dot:nth-child(3){animation-delay:.4s}
+    @keyframes dotBounce{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+    .divider{height:1px;background:var(--border);margin:20px 0}
+    .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+    .section-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800}
+    .section-sub{font-size:12px;color:var(--text3);margin-top:2px}
+    .empty-state{text-align:center;padding:60px 32px}
+    .empty-icon{font-size:48px;margin-bottom:16px;opacity:.4}
+    .empty-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text2);margin-bottom:8px}
+    .empty-sub{font-size:13px;color:var(--text3);max-width:300px;margin:0 auto}
+    .tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:4px;background:var(--surface3);border:1px solid var(--border);color:var(--text3)}
+    .tag.green{background:var(--green-bg);border-color:rgba(46,204,138,.2);color:var(--green)}
+    .tag.red{background:var(--red-bg);border-color:rgba(232,92,92,.2);color:var(--red)}
+    .tag.orange{background:var(--accent-glow);border-color:rgba(232,124,46,.2);color:var(--accent)}
+    .tag.blue{background:var(--blue-bg);border-color:rgba(92,157,232,.2);color:var(--blue)}
+    .input-field{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text);font-family:'Instrument Sans',sans-serif;outline:none;transition:border-color .15s;width:100%}
+    .input-field:focus{border-color:var(--accent)}
+    .input-field::placeholder{color:var(--text3)}
+    .input-label{font-size:11px;color:var(--text3);margin-bottom:5px;font-family:'DM Mono',monospace;letter-spacing:.5px;text-transform:uppercase}
+    ::-webkit-scrollbar{width:6px}
+    ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+    .hidden{display:none!important}
+    .page{display:none}
+    .page.active{display:block;animation:fadeIn .25s ease}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .fade-in{animation:fadeIn .3s ease forwards}
+    input[type="file"]{display:none}
+    .analysis-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+    .analysis-header-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+    .analysis-header-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
+    .analysis-section{margin-bottom:24px}
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark"><div class="logo-icon">⚡</div>Procure<span>AI</span></div>
+      <div class="logo-sub">Industrial Intelligence Platform</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-label">Main</div>
+      <div class="nav-item active" onclick="showPage('dashboard')"><span class="icon">◈</span>Dashboard</div>
+      <div class="nav-item" onclick="showPage('procurement')"><span class="icon">📄</span>Document Analysis<span class="nav-badge" id="doc-badge">0</span></div>
+      <div class="nav-item" onclick="showPage('compare')"><span class="icon">⚖</span>Quote Comparison</div>
+      <div class="nav-item" onclick="showPage('chat')"><span class="icon">💬</span>AI Assistant</div>
+      <div class="nav-label">HR Module</div>
+      <div class="nav-item" onclick="showPage('hr')"><span class="icon">👤</span>CV Screener</div>
+      <div class="nav-label">System</div>
+      <div class="nav-item" onclick="showPage('settings')"><span class="icon">⚙</span>Settings</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="api-status">
+        <div class="status-dot" id="status-dot" style="background:var(--yellow);box-shadow:0 0 6px var(--yellow)"></div>
+        <div class="api-status-text" id="status-text">Checking backend...</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="page-title">Dashboard</div>
+        <div class="topbar-sub" id="page-sub">Overview of your AI procurement intelligence</div>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-tag oil">Oil & Gas</span>
+        <span class="topbar-tag">Industrial Automation</span>
+        <span class="topbar-tag" id="server-tag" style="color:var(--yellow);border-color:rgba(232,196,46,.3)">● Connecting...</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div id="server-banner" class="server-banner checking">
+          <span>⏳</span><span id="banner-text">Connecting to ProcureAI backend at localhost:3001...</span>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-icon">📄</div><div class="stat-label">Documents Analyzed</div><div class="stat-value" id="stat-docs">0</div><div class="stat-change" id="stat-docs-sub" style="color:var(--text3)">Upload to begin</div></div>
+          <div class="stat-card"><div class="stat-icon">🔍</div><div class="stat-label">Risks Flagged</div><div class="stat-value" id="stat-risks">0</div><div class="stat-change" id="stat-risks-sub" style="color:var(--text3)">Across all docs</div></div>
+          <div class="stat-card"><div class="stat-icon">⚖</div><div class="stat-label">Quotes Compared</div><div class="stat-value" id="stat-quotes">0</div><div class="stat-change" style="color:var(--text3)">Evaluations</div></div>
+          <div class="stat-card"><div class="stat-icon">👤</div><div class="stat-label">CVs Screened</div><div class="stat-value" id="stat-cvs">0</div><div class="stat-change" style="color:var(--text3)">Candidates</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">🏗️ System Architecture</div>
+            <div class="card-sub" style="margin-bottom:16px">Production-grade setup — API key secured in backend</div>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+              <div style="display:flex;gap:10px;align-items:center;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+                <span>🖥️</span><div><div style="font-weight:600">Frontend (This Browser)</div><div style="color:var(--text3);font-size:11px;font-family:'DM Mono',monospace">http://localhost:5500 · No API keys here</div></div><span class="tag green" style="margin-left:auto">SECURE</span>
+              </div>
+              <div style="padding:4px 0 4px 24px;color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">↕ HTTP requests to backend</div>
+              <div style="display:flex;gap:10px;align-items:center;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+                <span>⚙️</span><div><div style="font-weight:600">Node.js Backend</div><div style="color:var(--text3);font-size:11px;font-family:'DM Mono',monospace">localhost:3001 · API key lives here</div></div><span class="tag" id="backend-tag" style="margin-left:auto">CHECKING</span>
+              </div>
+              <div style="padding:4px 0 4px 24px;color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">↕ Secure server-side calls</div>
+              <div style="display:flex;gap:10px;align-items:center;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+                <span>🤖</span><div><div style="font-weight:600">Google Gemini API</div><div style="color:var(--text3);font-size:11px;font-family:'DM Mono',monospace">gemini-2.0-flash · AI analysis</div></div><span class="tag blue" style="margin-left:auto">GEMINI</span>
+              </div>
+              <div style="padding:4px 0 4px 24px;color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">↕ n8n webhook trigger</div>
+              <div style="display:flex;gap:10px;align-items:center;padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+                <span>🔄</span><div><div style="font-weight:600">n8n Automation</div><div style="color:var(--text3);font-size:11px;font-family:'DM Mono',monospace">Email → PDF → AI → Reply workflow</div></div><span class="tag orange" style="margin-left:auto">n8n</span>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">⚡ Platform Capabilities</div>
+            <div class="card-sub" style="margin-bottom:20px">Built for Delta Controls FZCO & Veetech Automation</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--green)">✓</span><span style="font-size:13px;color:var(--text2)">Secure backend — API key never in browser</span></div>
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--green)">✓</span><span style="font-size:13px;color:var(--text2)">PDF upload → AI extraction of key fields</span></div>
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--green)">✓</span><span style="font-size:13px;color:var(--text2)">Contract risk flagging (High/Medium/Low)</span></div>
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--green)">✓</span><span style="font-size:13px;color:var(--text2)">Multi-supplier quote comparison</span></div>
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--green)">✓</span><span style="font-size:13px;color:var(--text2)">AI chat with document context</span></div>
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--green)">✓</span><span style="font-size:13px;color:var(--text2)">n8n workflow: Email PDF → auto reply</span></div>
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 0"><span style="color:var(--green)">✓</span><span style="font-size:13px;color:var(--text2)">Full request logging (Winston)</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOCUMENT ANALYSIS -->
+      <div class="page" id="page-procurement">
+        <div class="section-header">
+          <div><div class="section-title">Document Analysis</div><div class="section-sub">Upload RFQs, contracts, POs — AI extracts and flags risks</div></div>
+          <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">＋ Upload PDF</button>
+          <input type="file" id="file-input" accept=".pdf,.txt" multiple onchange="handleFileUpload(event)"/>
+        </div>
+        <div class="grid-2" style="gap:24px">
+          <div>
+            <div class="upload-zone" id="drop-zone"
+              ondragover="event.preventDefault();this.classList.add('dragover')"
+              ondragleave="this.classList.remove('dragover')"
+              ondrop="handleDrop(event)"
+              onclick="document.getElementById('file-input').click()">
+              <div class="upload-icon">📂</div>
+              <div class="upload-title">Drop documents here</div>
+              <div class="upload-sub">or click to browse</div>
+              <div class="upload-formats"><span class="format-tag">PDF</span><span class="format-tag">TXT</span><span class="format-tag">Contracts</span><span class="format-tag">RFQ</span><span class="format-tag">PO</span></div>
+            </div>
+            <div style="margin-top:20px">
+              <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Uploaded Documents</div>
+              <div id="file-list"><div class="empty-state" style="padding:30px"><div class="empty-icon">📋</div><div class="empty-title">No documents yet</div><div class="empty-sub">Upload a PDF to begin AI analysis</div></div></div>
+            </div>
+          </div>
+          <div>
+            <div class="card" id="analysis-panel" style="min-height:400px">
+              <div id="analysis-empty" class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">Select a document</div><div class="empty-sub">Click any document to view AI analysis</div></div>
+              <div id="analysis-output" class="hidden"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:24px">
+          <div class="card-title" style="margin-bottom:12px">📝 Or paste document text</div>
+          <textarea id="paste-text" class="chat-input" style="height:120px;width:100%;margin-bottom:12px" placeholder="Paste contract text, RFQ content, or any procurement document..."></textarea>
+          <div style="display:flex;gap:10px">
+            <input type="text" id="paste-doc-name" class="input-field" style="max-width:220px" placeholder="Document name (optional)"/>
+            <button class="btn btn-primary" onclick="analyzeText()">⚡ Analyze Text</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPARE -->
+      <div class="page" id="page-compare">
+        <div class="section-header">
+          <div><div class="section-title">Quote Comparison</div><div class="section-sub">AI evaluates and ranks supplier quotes</div></div>
+        </div>
+        <div class="card" style="margin-bottom:24px">
+          <div class="card-title" style="margin-bottom:4px">Add Supplier Quotes</div>
+          <div class="card-sub" style="margin-bottom:16px">Enter at least 2 quotes for comparison</div>
+          <div id="quote-inputs"></div>
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <button class="btn btn-secondary" onclick="addQuoteRow()">＋ Add Supplier</button>
+            <button class="btn btn-primary" onclick="compareQuotes()" id="compare-btn">⚖ Compare with AI</button>
+          </div>
+        </div>
+        <div id="comparison-result" class="hidden">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:16px">📊 Comparison Results</div>
+            <div id="comparison-table-wrap"></div>
+            <div class="divider"></div>
+            <div id="comparison-recommendation"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHAT -->
+      <div class="page" id="page-chat">
+        <div class="section-header">
+          <div><div class="section-title">AI Assistant</div><div class="section-sub">Ask questions about your documents in plain English</div></div>
+          <button class="btn btn-secondary btn-sm" onclick="clearChat()">Clear Chat</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+              <div class="chat-message ai fade-in">
+                <div class="chat-avatar ai">AI</div>
+                <div class="chat-bubble">👋 Hello! I'm ProcureAI — your procurement intelligence assistant for Oil & Gas and industrial automation.<br><br>
+                I can analyze documents, compare quotes, flag contract risks, and answer any procurement questions.<br><br>
+                <strong>Try asking:</strong><br>• "What are the payment terms in the contract?"<br>• "Which supplier has the best warranty?"<br>• "What risks should I flag to management?"</div>
+              </div>
+            </div>
+            <div class="chat-input-area">
+              <textarea class="chat-input" id="chat-input" rows="1" placeholder="Ask anything about your procurement documents..."
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"
+                oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+              <button class="btn btn-primary" onclick="sendChat()" id="send-btn">Send ↑</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HR -->
+      <div class="page" id="page-hr">
+        <div class="section-header">
+          <div><div class="section-title">CV Screener</div><div class="section-sub">AI evaluates candidates against job requirements</div></div>
+        </div>
+        <div class="grid-2" style="gap:24px;margin-bottom:24px">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px">📋 Job Description</div>
+            <textarea class="chat-input" id="jd-input" style="height:200px;width:100%" placeholder="Paste the job description here..."></textarea>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px">👤 Candidate CV</div>
+            <textarea class="chat-input" id="cv-input" style="height:200px;width:100%" placeholder="Paste candidate CV / resume here..."></textarea>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:24px">
+          <button class="btn btn-primary" onclick="screenCV()">🔍 Screen Candidate</button>
+          <button class="btn btn-secondary" onclick="loadSampleHR()">Load Sample Data</button>
+        </div>
+        <div id="hr-result" class="hidden">
+          <div class="card fade-in"><div class="card-title" style="margin-bottom:20px">📊 Candidate Evaluation</div><div id="hr-output"></div></div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="page" id="page-settings">
+        <div class="section-header">
+          <div><div class="section-title">Settings</div><div class="section-sub">Backend connection and system configuration</div></div>
+        </div>
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-title" style="margin-bottom:4px">🔌 Backend Connection</div>
+          <div class="card-sub" style="margin-bottom:16px">Frontend connects to Node.js backend — API key is secured there</div>
+          <div style="display:flex;gap:10px;margin-bottom:12px">
+            <input type="text" class="input-field" id="backend-url-input" value="http://localhost:3001" style="max-width:280px"/>
+            <button class="btn btn-primary" onclick="saveBackendUrl()">Save</button>
+            <button class="btn btn-secondary" onclick="checkBackend()">Test Connection</button>
+          </div>
+          <div id="backend-status" style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace"></div>
+        </div>
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-title" style="margin-bottom:4px">🔑 API Key Location</div>
+          <div class="card-sub" style="margin-bottom:12px">Your Gemini API key is stored securely in the backend .env file — never in the browser</div>
+          <div style="padding:14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">
+            📁 backend/.env<br>
+            <span style="color:var(--accent)">GEMINI_API_KEY</span>=<span style="color:var(--green)">your_key_here</span><br><br>
+            <span style="color:var(--text3)"># Never commit this file to GitHub</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px">ℹ About ProcureAI</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.7">
+            ProcureAI is a production-grade AI procurement platform for industrial automation and Oil & Gas companies.
+            Built with Node.js backend, Google Gemini AI, and n8n automation workflows.<br><br>
+            <span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">Delta Controls FZCO & Veetech Automation · UAE · v1.0.0</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+// ═══════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════
+let BACKEND_URL = '';
+let documents = [];
+let chatHistory = [];
+let stats = { docs: 0, risks: 0, quotes: 0, cvs: 0 };
+
+const PAGES = {
+  dashboard:   { title: 'Dashboard',         sub: 'Overview of your AI procurement intelligence' },
+  procurement: { title: 'Document Analysis', sub: 'Upload and analyze procurement documents with AI' },
+  compare:     { title: 'Quote Comparison',  sub: 'AI-powered supplier quote evaluation' },
+  chat:        { title: 'AI Assistant',      sub: 'Chat with AI about your documents' },
+  hr:          { title: 'CV Screener',       sub: 'AI-powered candidate evaluation' },
+  settings:    { title: 'Settings',          sub: 'Backend connection and system configuration' }
+};
+
+// ═══════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => { if (n.getAttribute('onclick')?.includes(id)) n.classList.add('active'); });
+  document.getElementById('page-title').textContent = PAGES[id].title;
+  document.getElementById('page-sub').textContent = PAGES[id].sub;
+}
+
+// ═══════════════════════════════════
+//  BACKEND API CALLS
+// ═══════════════════════════════════
+async function apiCall(endpoint, options = {}) {
+  const res = await fetch(`${BACKEND_URL}${endpoint}`, {
+    ...options,
+    headers: { ...(options.headers || {}) }
+  });
+  const data = await res.json();
+  if (!res.ok || !data.success) throw new Error(data.error || `Server error ${res.status}`);
+  return data;
+}
+
+// ═══════════════════════════════════
+//  BACKEND HEALTH CHECK
+// ═══════════════════════════════════
+async function checkBackend() {
+  setBackendStatus('Connecting...', 'checking');
+  try {
+    // Always hit backend directly for health check
+    const res = await fetch('http://localhost:3001/health');
+    const data = await res.json();
+    setBackendStatus(`✓ Connected — ${data.service} · Gemini: ${data.geminiConfigured ? '✓' : '✗ Not configured'}`, 'ok');
+    updateServerUI(true, data.geminiConfigured);
+  } catch (e) {
+    setBackendStatus('✗ Cannot reach backend — make sure backend is running: cd backend && npm run dev', 'error');
+    updateServerUI(false, false);
+  }
+}
+
+function updateServerUI(connected, geminiOk) {
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-text');
+  const tag = document.getElementById('server-tag');
+  const banner = document.getElementById('server-banner');
+  const bannerTxt = document.getElementById('banner-text');
+  const backendTag = document.getElementById('backend-tag');
+
+  if (connected && geminiOk) {
+    dot.style.background = 'var(--green)'; dot.style.boxShadow = '0 0 6px var(--green)';
+    txt.textContent = 'Backend Connected';
+    tag.style.color = 'var(--green)'; tag.style.borderColor = 'rgba(46,204,138,.3)'; tag.textContent = '● Live';
+    banner.className = 'server-banner ok';
+    bannerTxt.textContent = '✓ Backend connected · Gemini AI configured · All systems operational';
+    if (backendTag) { backendTag.className = 'tag green'; backendTag.textContent = 'ONLINE'; }
+  } else if (connected && !geminiOk) {
+    dot.style.background = 'var(--yellow)'; dot.style.boxShadow = '0 0 6px var(--yellow)';
+    txt.textContent = 'Backend OK — No Gemini';
+    tag.style.color = 'var(--yellow)'; tag.textContent = '● Partial';
+    banner.className = 'server-banner checking';
+    bannerTxt.textContent = '⚠ Backend running but GEMINI_API_KEY missing in backend .env file';
+    if (backendTag) { backendTag.className = 'tag'; backendTag.textContent = 'ONLINE'; }
+  } else {
+    dot.style.background = 'var(--red)'; dot.style.boxShadow = '0 0 6px var(--red)';
+    txt.textContent = 'Backend Offline';
+    tag.style.color = 'var(--red)'; tag.style.borderColor = 'rgba(232,92,92,.3)'; tag.textContent = '● Offline';
+    banner.className = 'server-banner error';
+    bannerTxt.textContent = '✗ Cannot connect to backend at localhost:3001 — Run: cd backend && npm run dev';
+    if (backendTag) { backendTag.className = 'tag red'; backendTag.textContent = 'OFFLINE'; }
+  }
+}
+
+function setBackendStatus(msg, type) {
+  const el = document.getElementById('backend-status');
+  if (el) { el.textContent = msg; el.style.color = type === 'ok' ? 'var(--green)' : type === 'error' ? 'var(--red)' : 'var(--yellow)'; }
+}
+
+function saveBackendUrl() {
+  BACKEND_URL = document.getElementById('backend-url-input').value.trim();
+  localStorage.setItem('procureai_backend', BACKEND_URL);
+  checkBackend();
+}
+
+// ═══════════════════════════════════
+//  FILE UPLOAD
+// ═══════════════════════════════════
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('dragover');
+  handleFileUpload({ target: { files: e.dataTransfer.files } });
+}
+
+async function handleFileUpload(e) {
+  const files = Array.from(e.target.files);
+  for (const file of files) uploadFileToBackend(file);
+  if (e.target) e.target.value = '';
+}
+
+async function uploadFileToBackend(file) {
+  const id = 'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  const doc = { id, name: file.name, status: 'processing', analysis: null };
+  documents.push(doc);
+  renderFileList();
+  updateDocBadge();
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const data = await apiCall('/api/analyze-document', { method: 'POST', body: formData });
+    doc.status = 'done';
+    doc.analysis = data.analysis;
+    doc.charCount = data.charCount;
+    doc.requestId = data.requestId;
+    stats.risks += (data.analysis.risks || []).length;
+    document.getElementById('stat-risks').textContent = stats.risks;
+    showToast(`✓ ${file.name} analyzed`);
+  } catch (e) {
+    doc.status = 'error';
+    doc.error = e.message;
+    showToast(`✗ ${file.name}: ${e.message}`);
+  }
+  renderFileList();
+}
+
+async function analyzeText() {
+  const text = document.getElementById('paste-text').value.trim();
+  if (!text) { showToast('Paste some text first'); return; }
+  const docName = document.getElementById('paste-doc-name').value.trim() || ('Document ' + (documents.length + 1));
+
+  const id = 'doc_' + Date.now();
+  const doc = { id, name: docName, status: 'processing', analysis: null };
+  documents.push(doc);
+  renderFileList(); updateDocBadge();
+  showPage('procurement');
+
+  try {
+    const data = await apiCall('/api/analyze-text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, docName })
+    });
+    doc.status = 'done'; doc.analysis = data.analysis;
+    stats.risks += (data.analysis.risks || []).length;
+    document.getElementById('stat-risks').textContent = stats.risks;
+    document.getElementById('paste-text').value = '';
+    showToast(`✓ ${docName} analyzed`);
+  } catch (e) {
+    doc.status = 'error'; doc.error = e.message;
+    showToast(`✗ ${e.message}`);
+  }
+  renderFileList();
+}
+
+function renderFileList() {
+  const el = document.getElementById('file-list');
+  if (!documents.length) { el.innerHTML = `<div class="empty-state" style="padding:30px"><div class="empty-icon">📋</div><div class="empty-title">No documents yet</div><div class="empty-sub">Upload a PDF to begin</div></div>`; return; }
+  el.innerHTML = documents.map(d => `
+    <div class="file-item" onclick="showAnalysis('${d.id}')" id="fitem-${d.id}">
+      <div style="font-size:24px">${d.name.endsWith('.pdf') ? '📄' : '📝'}</div>
+      <div style="flex:1"><div class="file-name">${d.name}</div><div class="file-meta">${d.charCount ? d.charCount + ' chars · ' : ''}${new Date().toLocaleDateString()}</div></div>
+      <div class="file-status ${d.status}" id="fstatus-${d.id}">${d.status.toUpperCase()}</div>
+    </div>`).join('');
+}
+
+function updateDocBadge() {
+  stats.docs = documents.length;
+  document.getElementById('doc-badge').textContent = stats.docs;
+  document.getElementById('stat-docs').textContent = stats.docs;
+}
+
+function showAnalysis(id) {
+  const doc = documents.find(d => d.id === id);
+  if (!doc) return;
+  document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
+  const item = document.getElementById('fitem-' + id);
+  if (item) item.classList.add('active');
+  const empty = document.getElementById('analysis-empty');
+  const output = document.getElementById('analysis-output');
+  empty.classList.add('hidden'); output.classList.remove('hidden');
+
+  if (doc.status === 'processing') {
+    output.innerHTML = `<div style="padding:40px;text-align:center"><div class="loading-dots" style="justify-content:center;margin-bottom:12px"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div><div style="font-size:13px;color:var(--text3)">Analyzing via backend...</div></div>`;
+    setTimeout(() => showAnalysis(id), 2000); return;
+  }
+  if (doc.status === 'error') { output.innerHTML = `<div style="padding:20px;color:var(--red);font-size:13px">✗ ${doc.error}</div>`; return; }
+  if (!doc.analysis) return;
+
+  const a = doc.analysis;
+  const riskHtml = (a.risks || []).map(r => `<div class="risk-item ${r.level}"><div class="risk-badge ${r.level}">${r.level}</div><div class="risk-text">${r.text}</div></div>`).join('') || '<div style="color:var(--text3);font-size:13px">No significant risks detected</div>';
+
+  output.innerHTML = `<div class="fade-in">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <span class="tag blue">${a.doc_type || 'Document'}</span>
+      <span style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700">${doc.name}</span>
+      ${doc.requestId ? `<span class="tag" style="margin-left:auto;font-size:9px">ID: ${doc.requestId}</span>` : ''}
+    </div>
+    <div class="analysis-section">
+      <div class="analysis-header"><div class="analysis-header-icon" style="background:var(--blue-bg)">📋</div><div class="analysis-header-title" style="color:var(--blue)">Extracted Fields</div></div>
+      <div class="info-grid">
+        <div class="info-item"><div class="info-key">Vendor</div><div class="info-val">${a.vendor||'—'}</div></div>
+        <div class="info-item"><div class="info-key">Buyer</div><div class="info-val">${a.buyer||'—'}</div></div>
+        <div class="info-item"><div class="info-key">Total Value</div><div class="info-val">${a.total_value||'—'}</div></div>
+        <div class="info-item"><div class="info-key">Delivery</div><div class="info-val">${a.delivery_timeline||'—'}</div></div>
+        <div class="info-item"><div class="info-key">Payment Terms</div><div class="info-val">${a.payment_terms||'—'}</div></div>
+        <div class="info-item"><div class="info-key">Warranty</div><div class="info-val">${a.warranty||'—'}</div></div>
+      </div>
+    </div>
+    <div class="analysis-section">
+      <div class="analysis-header"><div class="analysis-header-icon" style="background:var(--accent-glow)">📝</div><div class="analysis-header-title" style="color:var(--accent)">Scope Summary</div></div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.7;padding:14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">${a.scope||'—'}</div>
+    </div>
+    <div class="analysis-section">
+      <div class="analysis-header"><div class="analysis-header-icon" style="background:var(--red-bg)">⚠</div><div class="analysis-header-title" style="color:var(--red)">Risk Flags</div></div>
+      ${riskHtml}
+    </div>
+    <div class="recommendation"><div class="rec-label">AI Recommendation</div><div class="rec-text">${a.recommendation||'—'}</div></div>
+  </div>`;
+}
+
+// ═══════════════════════════════════
+//  QUOTE COMPARISON
+// ═══════════════════════════════════
+function addQuoteRow() {
+  const wrap = document.getElementById('quote-inputs');
+  const row = document.createElement('div');
+  row.className = 'quote-row';
+  row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;margin-bottom:10px;align-items:end';
+  row.innerHTML = `
+    <div><div class="input-label">Supplier Name</div><input type="text" class="input-field q-vendor" placeholder="e.g. Al Fara'a Group"/></div>
+    <div><div class="input-label">Price (USD)</div><input type="text" class="input-field q-price" placeholder="e.g. 45000"/></div>
+    <div><div class="input-label">Delivery (Days)</div><input type="text" class="input-field q-delivery" placeholder="e.g. 30"/></div>
+    <div><div class="input-label">Warranty</div><input type="text" class="input-field q-warranty" placeholder="e.g. 12 months"/></div>
+    <button class="btn btn-danger btn-sm" style="margin-top:16px" onclick="this.closest('.quote-row').remove()">✕</button>`;
+  wrap.appendChild(row);
+}
+
+async function compareQuotes() {
+  const rows = document.querySelectorAll('.quote-row');
+  const quotes = Array.from(rows).map(r => ({
+    vendor: r.querySelector('.q-vendor').value.trim(),
+    price: r.querySelector('.q-price').value.trim(),
+    delivery: r.querySelector('.q-delivery').value.trim(),
+    warranty: r.querySelector('.q-warranty').value.trim()
+  })).filter(q => q.vendor && q.price);
+
+  if (quotes.length < 2) { showToast('Add at least 2 supplier quotes'); return; }
+  const btn = document.getElementById('compare-btn');
+  btn.disabled = true; btn.textContent = 'Analyzing...';
+
+  try {
+    const data = await apiCall('/api/compare-quotes', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quotes })
+    });
+    renderComparison(quotes, data.result);
+    stats.quotes++; document.getElementById('stat-quotes').textContent = stats.quotes;
+  } catch (e) { showToast('✗ ' + e.message); }
+  btn.disabled = false; btn.textContent = '⚖ Compare with AI';
+}
+
+function renderComparison(quotes, result) {
+  const winnerIdx = result.winner_index ?? 0;
+  const rows = quotes.map((q, i) => {
+    const score = result.scores?.[i] || {};
+    const isWinner = i === winnerIdx;
+    return `<tr class="${isWinner ? 'best' : ''}">
+      <td>${q.vendor}${isWinner ? '<span class="winner-badge">★ BEST</span>' : ''}</td>
+      <td>$${q.price}</td><td>${q.delivery} days</td><td>${q.warranty}</td>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;color:${isWinner?'var(--green)':'var(--text2)'};font-size:16px">${score.overall_score||'—'}</div>
+        <div class="progress-bar" style="width:80px;margin:0"><div class="progress-fill" style="width:${score.overall_score||0}%;background:${isWinner?'var(--green)':'var(--accent)'}"></div></div>
+      </div></td></tr>`;
+  }).join('');
+
+  document.getElementById('comparison-table-wrap').innerHTML = `
+    <table class="comparison-table">
+      <thead><tr><th>Supplier</th><th>Price</th><th>Delivery</th><th>Warranty</th><th>AI Score/100</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+  document.getElementById('comparison-recommendation').innerHTML = `
+    <div class="recommendation" style="margin-bottom:12px">
+      <div class="rec-label">AI Recommendation</div>
+      <div class="rec-text">${result.recommendation||'—'}</div>
+    </div>
+    ${result.key_insight ? `<div style="display:flex;gap:8px;padding:12px 14px;background:var(--blue-bg);border:1px solid rgba(92,157,232,.2);border-radius:8px"><span style="color:var(--blue)">💡</span><span style="font-size:13px;color:var(--text2)">${result.key_insight}</span></div>` : ''}`;
+
+  document.getElementById('comparison-result').classList.remove('hidden');
+}
+
+// ═══════════════════════════════════
+//  CHAT
+// ═══════════════════════════════════
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = ''; input.style.height = 'auto';
+  appendChatMessage('user', msg);
+  chatHistory.push({ role: 'user', content: msg });
+  const typingId = appendChatMessage('ai', null, true);
+
+  const contextDocs = documents.filter(d => d.status === 'done' && d.analysis).map(d =>
+    `Document: ${d.name}\nAnalysis: ${JSON.stringify(d.analysis)}`).join('\n\n---\n\n');
+
+  try {
+    const data = await apiCall('/api/chat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ history: chatHistory.slice(-10), contextDocs })
+    });
+    chatHistory.push({ role: 'assistant', content: data.reply });
+    removeTyping(typingId);
+    appendChatMessage('ai', data.reply);
+  } catch (e) {
+    removeTyping(typingId);
+    appendChatMessage('ai', '✗ ' + e.message);
+  }
+}
+
+function appendChatMessage(role, text, isTyping = false) {
+  const container = document.getElementById('chat-messages');
+  const id = 'msg_' + Date.now();
+  const div = document.createElement('div');
+  div.className = 'chat-message ' + role + ' fade-in'; div.id = id;
+  div.innerHTML = `<div class="chat-avatar ${role}">${role === 'ai' ? 'AI' : '👤'}</div>
+    <div class="chat-bubble">${isTyping ? '<div class="loading-dots"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>' : (text||'').replace(/\n/g,'<br>')}</div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return id;
+}
+function removeTyping(id) { const el = document.getElementById(id); if (el) el.remove(); }
+function clearChat() { chatHistory = []; document.getElementById('chat-messages').innerHTML = `<div class="chat-message ai fade-in"><div class="chat-avatar ai">AI</div><div class="chat-bubble">Chat cleared. How can I help?</div></div>`; }
+
+// ═══════════════════════════════════
+//  HR
+// ═══════════════════════════════════
+async function screenCV() {
+  const jd = document.getElementById('jd-input').value.trim();
+  const cv = document.getElementById('cv-input').value.trim();
+  if (!jd || !cv) { showToast('Enter both JD and CV'); return; }
+  const btn = event.target; btn.disabled = true; btn.textContent = 'Screening...';
+
+  try {
+    const data = await apiCall('/api/screen-cv', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobDescription: jd, cvText: cv })
+    });
+    renderHRResult(data.result);
+    stats.cvs++; document.getElementById('stat-cvs').textContent = stats.cvs;
+  } catch (e) { showToast('✗ ' + e.message); }
+  btn.disabled = false; btn.textContent = '🔍 Screen Candidate';
+}
+
+function renderHRResult(r) {
+  const recColor = { Shortlist: 'green', Consider: 'orange', Reject: 'red' }[r.recommendation] || '';
+  const skillsHtml = (r.skills_match || []).map(s => `
+    <div class="cv-score-bar">
+      <div class="cv-score-label">${s.skill} ${s.found ? '✓' : '—'}</div>
+      <div class="cv-score-track"><div class="cv-score-fill" style="width:${s.score}%;background:${s.score>=70?'var(--green)':s.score>=40?'var(--yellow)':'var(--red)'}"></div></div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);width:30px;text-align:right">${s.score}</div>
+    </div>`).join('');
+
+  document.getElementById('hr-output').innerHTML = `
+    <div class="grid-2">
+      <div>
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+          <div class="score-ring" style="background:conic-gradient(${r.overall_score>=70?'var(--green)':'var(--yellow)'} ${r.overall_score*3.6}deg, var(--border) 0)"><span>${r.overall_score}</span></div>
+          <div><div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800">${r.candidate_name}</div><span class="tag ${recColor}" style="margin-top:6px;display:inline-flex">${r.recommendation}</span></div>
+        </div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.7;padding:14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:16px">${r.summary}</div>
+        <div style="margin-bottom:16px">
+          <div class="input-label" style="margin-bottom:10px">Strengths</div>
+          ${(r.strengths||[]).map(s => `<div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--green)">✓</span><span style="font-size:13px;color:var(--text2)">${s}</span></div>`).join('')}
+        </div>
+        <div><div class="input-label" style="margin-bottom:10px">Gaps</div>
+          ${(r.gaps||[]).map(g => `<div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--red)">✗</span><span style="font-size:13px;color:var(--text2)">${g}</span></div>`).join('')}
+        </div>
+      </div>
+      <div>
+        <div class="input-label" style="margin-bottom:12px">Skills Alignment</div>
+        ${skillsHtml}
+        <div class="divider"></div>
+        <div class="input-label" style="margin-bottom:12px">Interview Questions</div>
+        ${(r.interview_questions||[]).map((q,i) => `<div style="display:flex;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);font-weight:600">Q${i+1}</span><span style="font-size:13px;color:var(--text2)">${q}</span></div>`).join('')}
+      </div>
+    </div>`;
+  document.getElementById('hr-result').classList.remove('hidden');
+}
+
+function loadSampleHR() {
+  document.getElementById('jd-input').value = `AI & Automation Specialist — Delta Controls FZCO
+We are seeking an AI & Automation Specialist with:
+- Hands-on experience with LLM APIs (OpenAI GPT, Anthropic Claude, Google Gemini)
+- Proficiency in n8n, Make, Zapier workflow automation
+- Python or JavaScript for scripting AI integrations
+- Prompt engineering and building AI agents
+- REST APIs and system integration
+- Familiarity with Oil & Gas or industrial automation environments`;
+  document.getElementById('cv-input').value = `Utkarsh Sharma — AI Engineer
+Skills: Python, JavaScript, REST APIs, Claude API, Gemini API, n8n, FastAPI, React, SQL, Prompt Engineering
+Projects:
+- ProcureAI: Production AI procurement platform — Node.js backend, Gemini AI, n8n automation workflow
+- CV Screening Tool: AI-powered HR candidate evaluator using LLM APIs
+Experience: Data Analyst Intern — built dashboards and automated reporting
+Education: B.Tech Computer Science 2024`;
+}
+
+// ═══════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:var(--surface3);border:1px solid var(--border2);color:var(--text);padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;animation:fadeIn .2s ease;box-shadow:0 8px 32px rgba(0,0,0,.4)';
+  t.textContent = msg; document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ═══════════════════════════════════
+//  INIT
+// ═══════════════════════════════════
+window.addEventListener('load', () => {
+  addQuoteRow(); addQuoteRow(); // Start with 2 rows
+  document.getElementById('backend-url-input').value = 'http://localhost:3001';
+  checkBackend();
+  setInterval(checkBackend, 60000); // Auto-check every minute
+});
+</script>
+</body>
+</html>

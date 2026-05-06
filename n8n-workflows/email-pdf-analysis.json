@@ -1,0 +1,208 @@
+{
+  "name": "ProcureAI — Email PDF Auto-Analysis",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerOn": "newEmail",
+        "filters": {
+          "readStatus": "unread",
+          "hasAttachment": true
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "id": "1",
+      "name": "📧 Gmail Trigger — New Email with Attachment",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "Triggers when a new unread email with an attachment arrives.\nSet up Gmail OAuth in n8n credentials."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.attachments[0].mimeType }}",
+              "operation": "contains",
+              "value2": "pdf"
+            }
+          ]
+        }
+      },
+      "id": "2",
+      "name": "🔍 Has PDF Attachment?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "notes": "Only process if the attachment is a PDF file."
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "={{ $json.attachments[0].data }}",
+        "options": {}
+      },
+      "id": "3",
+      "name": "📄 Extract PDF Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [680, 220],
+      "notes": "Extracts plain text from the PDF attachment using n8n's built-in PDF parser."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3001/api/webhook/email-document",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "senderEmail", "value": "={{ $('📧 Gmail Trigger — New Email with Attachment').item.json.from }}" },
+            { "name": "subject", "value": "={{ $('📧 Gmail Trigger — New Email with Attachment').item.json.subject }}" },
+            { "name": "documentName", "value": "={{ $('📧 Gmail Trigger — New Email with Attachment').item.json.attachments[0].name }}" },
+            { "name": "documentText", "value": "={{ $('📄 Extract PDF Text').item.json.text }}" }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "4",
+      "name": "🤖 Send to ProcureAI Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [900, 220],
+      "notes": "Sends extracted PDF text to our Node.js backend.\nBackend calls Gemini AI and returns analysis + suggested email reply."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "5",
+      "name": "✅ Analysis Successful?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1120, 220],
+      "notes": "Check if the backend returned a successful analysis."
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('🤖 Send to ProcureAI Backend').item.json.emailReply.to }}",
+        "subject": "={{ $('🤖 Send to ProcureAI Backend').item.json.emailReply.subject }}",
+        "message": "={{ $('🤖 Send to ProcureAI Backend').item.json.emailReply.body }}",
+        "options": {
+          "replyToSenderOnly": false
+        }
+      },
+      "id": "6",
+      "name": "📤 Send AI Reply Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [1340, 140],
+      "notes": "Sends the AI-generated analysis summary back to the original sender.\nUses the suggested reply text from ProcureAI backend."
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "log",
+              "value": "={{ 'SUCCESS — Processed: ' + $('📧 Gmail Trigger — New Email with Attachment').item.json.subject + ' from ' + $('📧 Gmail Trigger — New Email with Attachment').item.json.from }}"
+            }
+          ]
+        }
+      },
+      "id": "7",
+      "name": "📝 Log Success",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1560, 140],
+      "notes": "Logs successful processing. In production, connect to Google Sheets or a database."
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "error",
+              "value": "={{ 'FAILED — ' + $('📧 Gmail Trigger — New Email with Attachment').item.json.subject }}"
+            }
+          ]
+        }
+      },
+      "id": "8",
+      "name": "⚠ Log Error",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1340, 320],
+      "notes": "Handles failed analysis. In production, send Slack alert or log to database."
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "skipped",
+              "value": "={{ 'SKIPPED (no PDF) — ' + $json.subject }}"
+            }
+          ]
+        }
+      },
+      "id": "9",
+      "name": "⏭ Skip Non-PDF",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [680, 400],
+      "notes": "Ignores emails that don't have PDF attachments."
+    }
+  ],
+  "connections": {
+    "📧 Gmail Trigger — New Email with Attachment": {
+      "main": [[{ "node": "🔍 Has PDF Attachment?", "type": "main", "index": 0 }]]
+    },
+    "🔍 Has PDF Attachment?": {
+      "main": [
+        [{ "node": "📄 Extract PDF Text", "type": "main", "index": 0 }],
+        [{ "node": "⏭ Skip Non-PDF", "type": "main", "index": 0 }]
+      ]
+    },
+    "📄 Extract PDF Text": {
+      "main": [[{ "node": "🤖 Send to ProcureAI Backend", "type": "main", "index": 0 }]]
+    },
+    "🤖 Send to ProcureAI Backend": {
+      "main": [[{ "node": "✅ Analysis Successful?", "type": "main", "index": 0 }]]
+    },
+    "✅ Analysis Successful?": {
+      "main": [
+        [{ "node": "📤 Send AI Reply Email", "type": "main", "index": 0 }],
+        [{ "node": "⚠ Log Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "📤 Send AI Reply Email": {
+      "main": [[{ "node": "📝 Log Success", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "description": "ProcureAI Email Automation Workflow — When an email with a PDF arrives, extract text, send to ProcureAI backend for AI analysis, and reply to sender with structured summary. Built for Delta Controls FZCO.",
+    "version": "1.0.0"
+  }
+}
