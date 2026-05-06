@@ -1,7 +1,7 @@
 {
   "name": "procureai-backend",
   "version": "1.0.0",
-  "description": "ProcureAI Backend — Secure AI API layer for Delta Controls FZCO",
+  "description": "ProcureIQ Backend \u2014 Secure AI API layer for Industrial Automation & Procurement",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
